@@ -25,3 +25,13 @@ File and note Delete requests accept optional `expectedSHA256` and `expectedUpda
 HTTP note creation or update must include a string `content` field. An explicit empty string is valid; omitted or null content is rejected before any service mutation.
 
 Mutation locks operate within one service process. Multiple replicas and external database or blob writers require coordination. This protection does not automatically clean up previously revived records.
+
+## Local restore compatibility
+
+With no matching, explicitly configured retirement entry, uploading the same
+bytes as a deleted file remains allowed. This includes restoring from local
+trash or Git with either an older or newer mtime. Content equality and clocks
+do not establish user intent and must not implicitly prohibit restoration.
+The current protocol does not resolve general stale-delete versus intentional
+restore conflicts. A future solution needs explicit revision/intent information
+and safe conflict handling; this policy is not a substitute for that protocol.
