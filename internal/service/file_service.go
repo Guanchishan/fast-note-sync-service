@@ -290,6 +290,16 @@ func (s *fileService) UpdateOrCreate(ctx context.Context, uid int64, params *dto
 	updateOrCreate := func() (any, error) {
 		var isNew bool
 		file, readErr := s.fileForWrite(ctx, uid, vaultID, params.Path, params.PathHash)
+		if readErr != nil && !errors.Is(readErr, gorm.ErrRecordNotFound) {
+			return nil, readErr
+		}
+		// Ordinary sync may not replay the exact bytes of a tombstone. Explicit
+		// Restore remains the way to restore those bytes; different bytes are new work.
+		if mtimeCheck && file != nil && file.Action == domain.FileActionDelete && params.SavePath != "" {
+			if err := s.guardTombstoneReplay(params, file); err != nil {
+				return nil, err
+			}
+		}
 		if s.retirement.Covers(uid, vaultID, params.Path) {
 			if readErr != nil && !errors.Is(readErr, gorm.ErrRecordNotFound) {
 				return nil, readErr
