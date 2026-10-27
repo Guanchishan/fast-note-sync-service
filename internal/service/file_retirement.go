@@ -91,23 +91,3 @@ func (s *fileService) auditRestore(uid, vault int64, file *domain.File, event st
 	}
 	return s.retirement.Audit(uid, vault, file.ID, file.Path, digest, event, s.clientType, s.clientName, s.clientVer)
 }
-
-// guardTombstoneReplay runs under the same path lock as Delete/Restore/commit.
-// Compare actual bytes rather than the client's weak contentHash or clock.
-func (s *fileService) guardTombstoneReplay(params *dto.FileUpdateRequest, file *domain.File) error {
-	if file.Path != params.Path {
-		return errors.New("tombstone path/hash mismatch")
-	}
-	oldHash, err := retirement.SHA256File(file.SavePath)
-	if err != nil {
-		return fmt.Errorf("read tombstone bytes: %w", err)
-	}
-	newHash, err := retirement.SHA256File(params.SavePath)
-	if err != nil {
-		return fmt.Errorf("read upload bytes: %w", err)
-	}
-	if oldHash == newHash {
-		return &RetiredBytesError{Current: s.domainToDTO(file)}
-	}
-	return nil
-}

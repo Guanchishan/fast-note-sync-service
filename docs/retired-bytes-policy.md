@@ -25,18 +25,3 @@ File and note Delete requests accept optional `expectedSHA256` and `expectedUpda
 HTTP note creation or update must include a string `content` field. An explicit empty string is valid; omitted or null content is rejected before any service mutation.
 
 Mutation locks operate within one service process. Multiple replicas and external database or blob writers require coordination. This protection does not automatically clean up previously revived records.
-
-## Ordinary sync replay of deleted files
-
-WebSocket chunk-upload completion also checks unlisted tombstones under the
-same per-path write lock as Delete/Restore. An upload whose actual SHA-256
-matches the deleted blob is acknowledged and reconciled to current server
-state instead of recreating the file, even if its client mtime is newer.
-Different actual bytes remain allowed, including a weak contentHash collision.
-Use explicit Restore to intentionally recover the deleted bytes. Direct REST
-writes retain their existing explicit-write behavior. Failure to read either
-blob fails the ordinary upload without mutating the tombstone.
-
-This guards exact deleted-content replay, including Delete arriving after
-upload negotiation. It does not provide optimistic concurrency for arbitrary
-competing edits to an active file.
